@@ -138,7 +138,7 @@ function HandDrawingScene({
           texture.magFilter = THREE.LinearFilter;
           texture.anisotropy = rendererRef.current?.capabilities ? rendererRef.current.capabilities.getMaxAnisotropy() : 4;
           texture.generateMipmaps = true;
-          texture.encoding = THREE.sRGBEncoding;
+          texture.colorSpace = THREE.SRGBColorSpace;
 
           if (imageMeshRef.current) {
             // Use high-quality material for perfect image display
@@ -440,6 +440,7 @@ function HandDrawingScene({
   };
 
   // Initialize Three.js with advanced effects
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const scene = new THREE.Scene();
     scene.background = null;
@@ -609,162 +610,140 @@ function HandDrawingScene({
         });
 
         // Handle gesture-based interactions using new Jarvis system
-        if (gestures && gestures.primaryGesture) {
-          const gesture = gestures.primaryGesture;
+        // NEW BEHAVIOR: Draw directly on finger movement, pinch to stop
+        if (gestures && gestures.drag && gestures.drag.isActive) {
+          // Get drag position for drawing
+          const drawPosition = new THREE.Vector3(
+            -(gestures.drag.position.x - 0.5) * 8,
+            -(gestures.drag.position.y - 0.5) * 8,
+            (gestures.drag.position.z || 0) * 1 + 0.3
+          );
 
-          switch (gesture) {
-            case "pinch":
-              // New behavior:
-              // - When pinch STARTS (finger close): stop drawing
-              // - When pinch ENDS and hand MOVES: draw
-              if (gestures.pinch.confidence > 0.5) {
-                const drawPosition = new THREE.Vector3(
-                  -(gestures.pinch.position.worldX || gestures.pinch.position.x - 0.5) * 8,
-                  -(gestures.pinch.position.worldY || gestures.pinch.position.y - 0.5) * 8,
-                  (gestures.pinch.position.worldZ || gestures.pinch.position.z * 1) + 0.3
-                );
+          // Check if pinching - if so, STOP drawing (safety feature)
+          const isPinching = gestures.pinch && gestures.pinch.isActive && gestures.pinch.confidence > 0.5;
 
-                // Add particle trail
-                if (airBrushHUDRef.current) {
-                  airBrushHUDRef.current.addParticle(drawPosition, "pinch");
-                }
+          if (isPinching) {
+            // Pinch detected - stop drawing/erasing
+            isPinchingRef.current = true;
+            wasDrawingRef.current = false;
+            lastDrawPositionRef.current = null;
 
-                if (interactionModeRef.current === "draw") {
-                  // Pinch just started - stop drawing
-                  if (!isPinchingRef.current) {
-                    isPinchingRef.current = true;
-                    wasDrawingRef.current = false;
-                    lastDrawPositionRef.current = null;
-                    setGestureStatus("✋ Pinch held - Move to draw");
-                  }
+            if (currentToolRef.current === "draw") {
+              setGestureStatus("✋ Pinch held - Drawing paused");
+            } else {
+              setGestureStatus("✋ Pinch held - Erasing paused");
+            }
 
-                  // Pinch is held - don't draw, just track position
-                  lastDrawPositionRef.current = drawPosition.clone();
-                }
+            // Add visual feedback for pinch stop
+            if (airBrushHUDRef.current) {
+              airBrushHUDRef.current.addParticle(drawPosition, "pinch");
+            }
+          } else {
+            // Not pinching - allow drawing/erasing on movement
+            isPinchingRef.current = false;
+
+            // Calculate distance moved
+            const distMoved = lastDrawPositionRef.current ? drawPosition.distanceTo(lastDrawPositionRef.current) : 0;
+
+            if (distMoved > 0.005) {
+              if (currentToolRef.current === "draw") {
+                // Draw mode - add cubes on movement
+                saveState();
+                addCube(drawPosition, currentColorRef.current, currentBrushSizeRef.current);
+                setGestureStatus(`✏️ Drawing... (${cubesRef.current.length} cubes)`);
               } else {
-                // Pinch released - if hand moves, start drawing
-                if (isPinchingRef.current) {
-                  isPinchingRef.current = false;
-                  // Will start drawing on next movement
-                }
+                // Erase mode - erase cubes on movement
+                saveState();
+                eraseCube(drawPosition, 0.2);
+                setGestureStatus(`🧽 Erasing...`);
               }
-              break;
-
-            case "openPalm":
-              // Open palm - stop any drawing
-              isPinchingRef.current = false;
-              wasDrawingRef.current = false;
-              lastDrawPositionRef.current = null;
-
-              if (gestures.openPalm.confidence > 0.7) {
-                if (airBrushHUDRef.current) {
-                  airBrushHUDRef.current.showSuccess(new THREE.Vector3(0, 0, 0));
-                }
-                if (physicsEngineRef.current) {
-                  physicsEngineRef.current.objects.forEach((physicsData) => {
-                    if (physicsData.object.name === "manipulatedObject") {
-                      physicsEngineRef.current.resetObject(physicsData.object, true, 500);
-                    }
-                  });
-                }
-                setGestureStatus("🔄 Reset with bounce effect");
-              }
-              break;
-
-            case "closedFist":
-              // Lock interaction mode to draw
-              interactionModeRef.current = "draw";
-              setGestureStatus("🔒 Interaction locked to draw");
-
-              // Add haptic feedback if available
-              if (navigator.vibrate) {
-                navigator.vibrate(50);
-              }
-              break;
-
-            case "twoHandZoom":
-              if (gestures.twoHandZoom.confidence > 0.6 && cameraRef.current) {
-                const zoomSpeed = 0.3;
-                if (gestures.twoHandZoom.direction > 0) {
-                  // Hands apart - zoom IN
-                  cameraRef.current.position.z = Math.max(1, cameraRef.current.position.z - zoomSpeed);
-                  setGestureStatus("🔍 Zoom In (spread hands)");
-                } else {
-                  // Hands together - zoom OUT
-                  cameraRef.current.position.z = Math.min(20, cameraRef.current.position.z + zoomSpeed);
-                  setGestureStatus("🔍 Zoom Out (pinch hands)");
-                }
-
-                // Also resize uploaded image if visible
-                if (imageMeshRef.current?.visible) {
-                  const imageScaleSpeed = 0.1;
-                  if (gestures.twoHandZoom.direction > 0) {
-                    // Hands apart - zoom image IN
-                    const newScale = Math.min(10, imageMeshRef.current.scale.x + imageScaleSpeed);
-                    imageMeshRef.current.scale.set(newScale, newScale, 1);
-                    setGestureStatus("🖼️ Zooming image in...");
-                  } else {
-                    // Hands together - zoom image OUT
-                    const newScale = Math.max(0.5, imageMeshRef.current.scale.x - imageScaleSpeed);
-                    imageMeshRef.current.scale.set(newScale, newScale, 1);
-                    setGestureStatus("🖼️ Zooming image out...");
-                  }
-                }
-              }
-              break;
-
-            case "rotation":
-              if (gestures.rotation.confidence > 0.5) {
-                // Apply rotation with physics for smooth momentum
-                const rotationAmount = gestures.rotation.angle * 0.1;
-
-                if (physicsEngineRef.current) {
-                  physicsEngineRef.current.applyRotationImpulse(sceneRef.current, new THREE.Euler(rotationAmount, 0, 0));
-                }
-
-                sceneRef.current.rotation.x += rotationAmount;
-                setGestureStatus(`🔄 Rotating (${gestures.rotation.axis || "unknown"})`);
-
-                // Also rotate uploaded image if visible
-                if (imageMeshRef.current?.visible) {
-                  imageMeshRef.current.rotation.z += rotationAmount;
-                  setGestureStatus(`🖼️ Rotating image...`);
-                }
-              }
-              break;
-
-            case "drag":
-              if (gestures.drag.confidence > 0.4) {
-                // Handle draw-on-move when pinch was just released
-                if (wasDrawingRef.current && lastDrawPositionRef.current) {
-                  const distMoved = lastDrawPositionRef.current ? gestures.drag.position.distanceTo(lastDrawPositionRef.current) : 0;
-                  if (distMoved > 0.008) {
-                    saveState();
-                    addCube(gestures.drag.position, currentColorRef.current, currentBrushSizeRef.current);
-                    lastDrawPositionRef.current = gestures.drag.position.clone();
-                    setGestureStatus(`✏️ Drawing... (${cubesRef.current.length} cubes)`);
-                  }
-                }
-
-                // Smooth drag with velocity
-                const dragDelta = gestures.drag.delta;
-                if (dragDelta && cameraRef.current) {
-                  cameraRef.current.position.x += dragDelta.x * 5;
-                  cameraRef.current.position.y -= dragDelta.y * 5;
-                  setGestureStatus("✋ Panning camera...");
-                }
-
-                // Also move uploaded image if visible
-                if (imageMeshRef.current?.visible) {
-                  const moveScale = 0.5;
-                  imageMeshRef.current.position.x += dragDelta.x * moveScale * 5;
-                  imageMeshRef.current.position.y -= dragDelta.y * moveScale * 5;
-                  setGestureStatus("🖼️ Moving image...");
-                }
-              }
-              break;
+            }
+            lastDrawPositionRef.current = drawPosition.clone();
           }
-        } else {
+        }
+
+        // Handle two-hand zoom separately (outside the drag check)
+        if (gestures && gestures.twoHandZoom && gestures.twoHandZoom.isActive && cameraRef.current) {
+          if (gestures.twoHandZoom.confidence > 0.6) {
+            const zoomSpeed = 0.3;
+            if (gestures.twoHandZoom.direction > 0) {
+              // Hands apart - zoom IN
+              cameraRef.current.position.z = Math.max(1, cameraRef.current.position.z - zoomSpeed);
+              setGestureStatus("🔍 Zoom In (spread hands)");
+            } else {
+              // Hands together - zoom OUT
+              cameraRef.current.position.z = Math.min(20, cameraRef.current.position.z + zoomSpeed);
+              setGestureStatus("🔍 Zoom Out (pinch hands)");
+            }
+
+            // Also resize uploaded image if visible
+            if (imageMeshRef.current?.visible) {
+              const imageScaleSpeed = 0.1;
+              if (gestures.twoHandZoom.direction > 0) {
+                const newScale = Math.min(10, imageMeshRef.current.scale.x + imageScaleSpeed);
+                imageMeshRef.current.scale.set(newScale, newScale, 1);
+                setGestureStatus("🖼️ Zooming image in...");
+              } else {
+                const newScale = Math.max(0.5, imageMeshRef.current.scale.x - imageScaleSpeed);
+                imageMeshRef.current.scale.set(newScale, newScale, 1);
+                setGestureStatus("🖼️ Zooming image out...");
+              }
+            }
+          }
+        }
+
+        // Handle open palm for reset
+        if (gestures && gestures.openPalm && gestures.openPalm.isActive) {
+          isPinchingRef.current = false;
+          wasDrawingRef.current = false;
+          lastDrawPositionRef.current = null;
+
+          if (gestures.openPalm.confidence > 0.7) {
+            if (airBrushHUDRef.current) {
+              airBrushHUDRef.current.showSuccess(new THREE.Vector3(0, 0, 0));
+            }
+            if (physicsEngineRef.current) {
+              physicsEngineRef.current.objects.forEach((physicsData) => {
+                if (physicsData.object.name === "manipulatedObject") {
+                  physicsEngineRef.current.resetObject(physicsData.object, true, 500);
+                }
+              });
+            }
+            setGestureStatus("🔄 Reset with bounce effect");
+          }
+        }
+
+        // Handle closed fist for lock
+        if (gestures && gestures.closedFist && gestures.closedFist.isActive) {
+          interactionModeRef.current = "draw";
+          setGestureStatus("🔒 Interaction locked to draw");
+
+          if (navigator.vibrate) {
+            navigator.vibrate(50);
+          }
+        }
+
+        // Handle rotation
+        if (gestures && gestures.rotation && gestures.rotation.isActive) {
+          if (gestures.rotation.confidence > 0.5) {
+            const rotationAmount = gestures.rotation.angle * 0.1;
+
+            if (physicsEngineRef.current) {
+              physicsEngineRef.current.applyRotationImpulse(sceneRef.current, new THREE.Euler(rotationAmount, 0, 0));
+            }
+
+            sceneRef.current.rotation.x += rotationAmount;
+            setGestureStatus(`🔄 Rotating (${gestures.rotation.axis || "unknown"})`);
+
+            if (imageMeshRef.current?.visible) {
+              imageMeshRef.current.rotation.z += rotationAmount;
+              setGestureStatus(`🖼️ Rotating image...`);
+            }
+          }
+        }
+
+        // Legacy fallback for backwards compatibility
+        if (!gestures || !gestures.drag || !gestures.drag.isActive) {
           // Legacy fallback for backwards compatibility
           if (numHands === 2) {
             // Two-hand zoom (legacy support)
@@ -986,7 +965,7 @@ function HandDrawingScene({
       if (rendererRef.current) rendererRef.current.dispose();
       document.body.removeChild(rendererRef.current.domElement);
     };
-  }, [saveState, addCube, showGrid]);
+  }, [saveState, addCube, eraseCube, showGrid]);
 
   // Keyboard
   useEffect(() => {
@@ -1302,8 +1281,9 @@ function HandDrawingScene({
           }}
         >
           <div style={{ color: "#00ff00", fontWeight: "bold", marginBottom: "6px" }}>✋ Controls:</div>
-          <div>✏️ Pinch = Draw</div>
-          <div>🧽 Pinch on cube = Erase</div>
+          <div>✏️ Move finger = Draw</div>
+          <div>🧽 Move finger = Erase</div>
+          <div>✋ Pinch = Stop draw/erase</div>
           <div>🙌 Two hands = Zoom</div>
         </div>
 
