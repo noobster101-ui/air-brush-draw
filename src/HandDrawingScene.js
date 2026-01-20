@@ -46,9 +46,6 @@ function HandDrawingScene({
   const currentGloveRef = useRef(selectedGlove);
 
   // Transparent image control state
-  const [imagePosition, setImagePosition] = useState(new THREE.Vector3(0, 0, 2));
-  const [imageRotation, setImageRotation] = useState(new THREE.Euler(0, 0, 0));
-  const [imageScale, setImageScale] = useState(new THREE.Vector3(3, 3, 1));
   const imageMeshRef = useRef(null);
   const imageTextureRef = useRef(null);
 
@@ -209,7 +206,7 @@ function HandDrawingScene({
       occupiedGridRef.current.clear();
       previousState.forEach((data) => createCube(data.position, data.color, data.size));
     }
-  }, []);
+  }, [createCube]);
 
   window.redo = useCallback(() => {
     if (historyRef.current.redo.length === 0) return;
@@ -220,7 +217,7 @@ function HandDrawingScene({
       occupiedGridRef.current.clear();
       nextState.forEach((data) => createCube(data.position, data.color, data.size));
     }
-  }, []);
+  }, [createCube]);
 
   // Create cube
   const createCube = useCallback((position, color, size) => {

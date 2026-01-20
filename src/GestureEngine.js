@@ -282,7 +282,6 @@ class GestureEngine {
   _detectOpenPalm(landmarks) {
     const fingerTips = [8, 12, 16, 20];
     const fingerPIPs = [6, 10, 14, 18];
-    const fingerTipsAll = [4, 8, 12, 16, 20]; // Including thumb
 
     let extendedFingers = 0;
     let extensionScore = 0;
@@ -301,7 +300,6 @@ class GestureEngine {
 
     // Check thumb
     const thumbTip = landmarks[4];
-    const thumbIP = landmarks[3];
     const thumbExtended = thumbTip.x < landmarks[3].x; // Thumb extends sideways
     if (thumbExtended) extendedFingers++;
 
@@ -356,10 +354,7 @@ class GestureEngine {
    * @private
    */
   _detectRotation(landmarks, handIndex) {
-    const wrist = landmarks[0];
     const indexTip = landmarks[8];
-    const middleTip = landmarks[12];
-    const pinkyTip = landmarks[20];
 
     // Get previous positions
     const prevWrist = this.lastLandmarks.get(`hand_${handIndex}_wrist`);
@@ -475,7 +470,6 @@ class GestureEngine {
     const palmDistance = Math.sqrt(Math.pow(wrist1.x - wrist2.x, 2) + Math.pow(wrist1.y - wrist2.y, 2));
 
     // Get previous distance
-    const prevKey = "twoHandDistance";
     const prevDistance =
       this.gestureHistory.length > 0 ? this.gestureHistory[this.gestureHistory.length - 1].twoHandDistance : currentDistance;
 
