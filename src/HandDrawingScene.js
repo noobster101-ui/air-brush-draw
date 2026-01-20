@@ -174,6 +174,39 @@ function HandDrawingScene({
     }
   }, [uploadedImage]);
 
+  // Create cube
+  const createCube = useCallback((position, color, size) => {
+    if (!sceneRef.current) return;
+
+    const geometry = new THREE.BoxGeometry(size, size, size);
+    const material = new THREE.MeshStandardMaterial({
+      color: color,
+      transparent: true,
+      opacity: 0.9,
+      emissive: new THREE.Color(color).multiplyScalar(0.5),
+      emissiveIntensity: 0.8,
+      metalness: 0.3,
+      roughness: 0.4,
+    });
+
+    const edges = new THREE.EdgesGeometry(geometry);
+    const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1 });
+    const wireframe = new THREE.LineSegments(edges, lineMaterial);
+
+    const cube = new THREE.Mesh(geometry, material);
+    cube.position.set(position.x, position.y, position.z);
+    cube.add(wireframe);
+    cube.castShadow = true;
+    cube.receiveShadow = true;
+
+    sceneRef.current.add(cube);
+    cubesRef.current.push(cube);
+
+    const gridSize = 0.1;
+    const gridKey = `${Math.round(position.x / gridSize)},${Math.round(position.y / gridSize)},${Math.round(position.z / gridSize)}`;
+    occupiedGridRef.current.add(gridKey);
+  }, []);
+
   // Save state
   const saveState = useCallback(() => {
     const now = Date.now();
@@ -218,39 +251,6 @@ function HandDrawingScene({
       nextState.forEach((data) => createCube(data.position, data.color, data.size));
     }
   }, [createCube]);
-
-  // Create cube
-  const createCube = useCallback((position, color, size) => {
-    if (!sceneRef.current) return;
-
-    const geometry = new THREE.BoxGeometry(size, size, size);
-    const material = new THREE.MeshStandardMaterial({
-      color: color,
-      transparent: true,
-      opacity: 0.9,
-      emissive: new THREE.Color(color).multiplyScalar(0.5),
-      emissiveIntensity: 0.8,
-      metalness: 0.3,
-      roughness: 0.4,
-    });
-
-    const edges = new THREE.EdgesGeometry(geometry);
-    const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1 });
-    const wireframe = new THREE.LineSegments(edges, lineMaterial);
-
-    const cube = new THREE.Mesh(geometry, material);
-    cube.position.set(position.x, position.y, position.z);
-    cube.add(wireframe);
-    cube.castShadow = true;
-    cube.receiveShadow = true;
-
-    sceneRef.current.add(cube);
-    cubesRef.current.push(cube);
-
-    const gridSize = 0.1;
-    const gridKey = `${Math.round(position.x / gridSize)},${Math.round(position.y / gridSize)},${Math.round(position.z / gridSize)}`;
-    occupiedGridRef.current.add(gridKey);
-  }, []);
 
   const addCube = useCallback(
     (pos, color, size) => {

@@ -354,6 +354,7 @@ class GestureEngine {
    * @private
    */
   _detectRotation(landmarks, handIndex) {
+    const wrist = landmarks[0];
     const indexTip = landmarks[8];
 
     // Get previous positions
