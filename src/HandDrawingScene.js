@@ -1319,10 +1319,22 @@ function HandDrawingScene({
               textAlign: "center",
             }}
           >
-            Ctrl+Z = Undo
+            Ctrl+Z = Undo |{" "}
+            <span style={{ color: "#ffff00", cursor: "pointer", textDecoration: "underline" }} onClick={() => window.openInstructions?.()}>
+              ❓ Help
+            </span>
           </div>
         )}
       </div>
+
+      {/* Pass instructions handler to parent */}
+      {typeof window !== "undefined" &&
+        (() => {
+          window.openInstructions = () => {
+            // Trigger the instructions popup via custom event
+            window.dispatchEvent(new CustomEvent("openInstructions"));
+          };
+        })()}
 
       <style>{`@keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0.3; } }`}</style>
     </>

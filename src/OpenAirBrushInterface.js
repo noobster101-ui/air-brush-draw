@@ -18,6 +18,7 @@ function OpenAirBrushInterface() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
   const loadInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
@@ -61,6 +62,12 @@ function OpenAirBrushInterface() {
     checkMobile();
     window.addEventListener("resize", checkMobile);
 
+    // Listen for open instructions event from child components
+    const handleOpenInstructions = () => {
+      setShowInstructions(true);
+    };
+    window.addEventListener("openInstructions", handleOpenInstructions);
+
     const handleKeyDown = (e) => {
       if (e.ctrlKey || e.metaKey) {
         if (e.key === "z") {
@@ -82,6 +89,7 @@ function OpenAirBrushInterface() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("resize", checkMobile);
+      window.removeEventListener("openInstructions", handleOpenInstructions);
     };
   }, []);
 
@@ -144,8 +152,202 @@ function OpenAirBrushInterface() {
     setSidebarCollapsed(!sidebarCollapsed);
   };
 
+  // Instructions content
+  const instructionsContent = (
+    <div
+      style={{
+        background: "rgba(0,0,0,0.95)",
+        padding: "25px",
+        borderRadius: "15px",
+        border: "2px solid #00ffff",
+        boxShadow: "0 0 40px rgba(0, 255, 255, 0.5)",
+        maxWidth: "450px",
+        fontFamily: "Arial, sans-serif",
+      }}
+    >
+      <h2
+        style={{
+          color: "#00ffff",
+          marginBottom: "20px",
+          textAlign: "center",
+          fontSize: "24px",
+          textShadow: "0 0 15px rgba(0, 255, 255, 0.8)",
+        }}
+      >
+        ✋ Open Air Brush
+        <br />
+        <span style={{ fontSize: "14px", color: "#88ccff" }}>Hand Gesture 3D Drawing</span>
+      </h2>
+
+      <div
+        style={{
+          background: "rgba(255,255,0,0.1)",
+          padding: "15px",
+          borderRadius: "10px",
+          border: "1px solid #ffff00",
+          marginBottom: "15px",
+        }}
+      >
+        <h3 style={{ color: "#ffff00", marginBottom: "10px", fontSize: "16px" }}>📖 How to Use</h3>
+        <p style={{ color: "rgba(255,255,255,0.9)", fontSize: "13px", lineHeight: "1.6" }}>
+          Use your hand gestures to draw in 3D space! Make sure your hand is visible to the camera.
+        </p>
+      </div>
+
+      <div
+        style={{
+          background: "rgba(0,255,0,0.1)",
+          padding: "15px",
+          borderRadius: "10px",
+          border: "1px solid #00ff00",
+          marginBottom: "15px",
+        }}
+      >
+        <h3 style={{ color: "#00ff00", marginBottom: "12px", fontSize: "16px" }}>✋ Hand Gestures</h3>
+        <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.9)", lineHeight: "1.8" }}>
+          <div>
+            ✏️ <strong>Move finger</strong> = Draw 3D cubes
+          </div>
+          <div>
+            🧽 <strong>Move finger (Erase mode)</strong> = Erase cubes
+          </div>
+          <div>
+            ✋ <strong>Pinch finger & thumb</strong> = Pause drawing
+          </div>
+          <div>
+            ✋ ✋<strong>Two hands apart</strong> = Zoom Out
+          </div>
+          <div>
+            🙌 <strong>Two hands together</strong> = Zoom In
+          </div>
+          <div>
+            🖐️ <strong>Open palm</strong> = Reset view with effect
+          </div>
+          <div>
+            ✊ <strong>Fist/Closed hand</strong> = Lock to draw mode
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          background: "rgba(0,255,255,0.1)",
+          padding: "15px",
+          borderRadius: "10px",
+          border: "1px solid #00ffff",
+          marginBottom: "15px",
+        }}
+      >
+        <h3 style={{ color: "#00ffff", marginBottom: "10px", fontSize: "16px" }}>🎮 Quick Tips</h3>
+        <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.9)", lineHeight: "1.6" }}>
+          <div>• Start with your index finger pointing up</div>
+          <div>• Move slowly for precise control</div>
+          <div>• Use two hands for zooming images</div>
+          <div>• Ctrl+Z to undo, Ctrl+S to save</div>
+        </div>
+      </div>
+
+      <div style={{ textAlign: "center" }}>
+        <button
+          onClick={() => setShowInstructions(false)}
+          style={{
+            padding: "15px 40px",
+            background: "linear-gradient(135deg, rgba(0,255,255,0.3), rgba(0,150,255,0.3))",
+            border: "2px solid #00ffff",
+            borderRadius: "10px",
+            color: "#00ffff",
+            cursor: "pointer",
+            fontSize: "16px",
+            fontWeight: "bold",
+            boxShadow: "0 0 20px rgba(0, 255, 255, 0.4)",
+            transition: "all 0.3s ease",
+          }}
+          onMouseOver={(e) => {
+            e.target.style.background = "linear-gradient(135deg, rgba(0,255,255,0.5), rgba(0,150,255,0.5))";
+            e.target.style.boxShadow = "0 0 30px rgba(0, 255, 255, 0.6)";
+          }}
+          onMouseOut={(e) => {
+            e.target.style.background = "linear-gradient(135deg, rgba(0,255,255,0.3), rgba(0,150,255,0.3))";
+            e.target.style.boxShadow = "0 0 20px rgba(0, 255, 255, 0.4)";
+          }}
+        >
+          Got it! Let's Draw 🎨
+        </button>
+      </div>
+
+      <div
+        style={{
+          marginTop: "15px",
+          textAlign: "center",
+          fontSize: "11px",
+          color: "rgba(255,255,255,0.5)",
+        }}
+      >
+        💡 Tip: Click the ❓ button anytime to see these instructions again
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ display: "flex", height: "100vh", background: "#0a0a1a", fontFamily: "Arial, sans-serif", overflow: "hidden" }}>
+      {/* Instructions Popup Overlay */}
+      {showInstructions && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background: "rgba(0, 0, 0, 0.85)",
+            zIndex: 3000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+            overflow: "auto",
+          }}
+          onClick={() => setShowInstructions(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()}>{instructionsContent}</div>
+        </div>
+      )}
+
+      {/* Help Button (❓) */}
+      <button
+        onClick={() => setShowInstructions(true)}
+        style={{
+          position: "fixed",
+          top: isMobile ? "20px" : "20px",
+          right: isMobile ? (mobileMenuOpen ? "auto" : "10px") : sidebarCollapsed ? "60px" : "270px",
+          zIndex: 2000,
+          width: isMobile ? "40px" : "45px",
+          height: isMobile ? "40px" : "45px",
+          background: "rgba(255, 255, 0, 0.2)",
+          border: "2px solid #ffff00",
+          borderRadius: "50%",
+          color: "#ffff00",
+          fontSize: isMobile ? "18px" : "20px",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 0 15px rgba(255, 255, 0, 0.4)",
+          transition: "all 0.3s ease",
+        }}
+        title="Show Instructions"
+        onMouseOver={(e) => {
+          e.target.style.background = "rgba(255, 255, 0, 0.4)";
+          e.target.style.transform = "scale(1.1)";
+        }}
+        onMouseOut={(e) => {
+          e.target.style.background = "rgba(255, 255, 0, 0.2)";
+          e.target.style.transform = "scale(1)";
+        }}
+      >
+        ❓
+      </button>
+
       {/* Mobile Hamburger Menu Button */}
       {isMobile && (
         <button
@@ -373,7 +575,7 @@ function OpenAirBrushInterface() {
             <br />
             ✋ Pinch = Stop
             <br />
-            🙌 Two hands = Zoom
+            🙌 Two hands near = Zoom
           </div>
         </div>
       )}
