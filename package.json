@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "author": "Rakesh Singh",
-  "homepage": "https://noobster101-ui.github.io/air-brush-draw",
+  "homepage": "https://air-brush-draw.vercel.app",
   "dependencies": {
     "@mediapipe/camera_utils": "^0.3.1675466862",
     "@mediapipe/hands": "^0.4.1675469240",
