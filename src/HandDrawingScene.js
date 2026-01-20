@@ -68,11 +68,11 @@ function HandDrawingScene({
     if (sceneRef.current && cameraRef.current) {
       // Initialize HandTracker
       handTrackerRef.current = new HandTracker(sceneRef.current, {
-        smoothingFactor: 0.3,
+        smoothingFactor: 0.2,
         showSkeleton: true,
         showJoints: true,
-        jointSize: 0.008, // Smaller joints for better detail
-        jointGlowSize: 0.015, // Smaller glow
+        jointSize: 0.005, // Smaller joints for better detail
+        jointGlowSize: 0.008, // Smaller glow
       });
 
       // Initialize GestureEngine
@@ -818,6 +818,7 @@ function HandDrawingScene({
               }
 
               // If not pinching and wasDrawing is enabled, check for movement-based drawing
+              // Don't draw when ball physics mode is active
               if (wasDrawingRef.current && currentToolRef.current === "draw") {
                 const distMoved = lastDrawPositionRef.current ? drawPosition.distanceTo(lastDrawPositionRef.current) : 0;
                 if (distMoved > 0.008) {

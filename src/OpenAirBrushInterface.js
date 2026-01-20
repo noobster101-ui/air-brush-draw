@@ -157,7 +157,7 @@ function OpenAirBrushInterface() {
     <div
       style={{
         background: "rgba(0,0,0,0.95)",
-        padding: "25px",
+        padding: "10px",
         borderRadius: "15px",
         border: "2px solid #00ffff",
         boxShadow: "0 0 40px rgba(0, 255, 255, 0.5)",
@@ -225,6 +225,66 @@ function OpenAirBrushInterface() {
           </div>
           <div>
             ✊ <strong>Fist/Closed hand</strong> = Lock to draw mode
+          </div>
+        </div>
+      </div>
+
+      {/* Grid and Video Settings */}
+      <div
+        style={{
+          background: "rgba(0, 255, 255, 0.1)",
+          padding: "15px",
+          borderRadius: "10px",
+          border: "1px solid #00ffff",
+          marginBottom: "15px",
+        }}
+      >
+        <h3 style={{ color: "#00ffff", marginBottom: "12px", fontSize: "16px" }}>🎨 Grid & Video Settings</h3>
+        <div style={{ fontSize: "13px", color: "rgba(255, 255, 255, 0.9)", lineHeight: "1.8" }}>
+          <div>
+            <strong>🟦 Grid Color:</strong> Cyan (#00ffff) holographic grid
+          </div>
+          <div>
+            <strong>📹 Video Background:</strong> Your camera feed as drawing background
+          </div>
+          <div>
+            <strong>🔆 Video Opacity:</strong> Slider to adjust video transparency (0-100%)
+          </div>
+          <div>
+            <strong>⏹️ Grid Toggle:</strong> Show/hide the holographic grid
+          </div>
+        </div>
+      </div>
+
+      {/* Glove Styles */}
+      <div
+        style={{
+          background: "rgba(255, 0, 255, 0.1)",
+          padding: "15px",
+          borderRadius: "10px",
+          border: "1px solid #ff00ff",
+          marginBottom: "15px",
+        }}
+      >
+        <h3 style={{ color: "#ff00ff", marginBottom: "12px", fontSize: "16px" }}>🧤 Glove Styles</h3>
+        <div style={{ fontSize: "13px", color: "rgba(255, 255, 255, 0.9)", lineHeight: "1.8" }}>
+          <div>
+            <span style={{ color: "#00ff00" }}>●</span> <strong>Bone:</strong> Green skeleton style
+          </div>
+          <div>
+            <span style={{ color: "#ff6600" }}>●</span> <strong>Iron:</strong> Orange metal style
+          </div>
+          <div>
+            <span style={{ color: "#00cc00" }}>●</span> <strong>Hulk:</strong> Green power style
+          </div>
+          <div>
+            <span style={{ color: "#cc0000" }}>●</span> <strong>Titan:</strong> Red Thanos style
+          </div>
+          <div>
+            <span style={{ color: "#00ffff" }}>●</span> <strong>Cyber:</strong> Cyan cyber style
+          </div>
+          <div>
+            <span style={{ color: "#aaffaa" }}>●</span> <strong>Ghost:</strong> Light green ghost style
           </div>
         </div>
       </div>
@@ -297,14 +357,14 @@ function OpenAirBrushInterface() {
             position: "fixed",
             top: 0,
             left: 0,
-            width: "100%",
-            height: "100%",
+            width: "95%",
+            height: "95%",
             background: "rgba(0, 0, 0, 0.85)",
             zIndex: 3000,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "20px",
+            margin: "auto",
             overflow: "auto",
           }}
           onClick={() => setShowInstructions(false)}
@@ -319,13 +379,13 @@ function OpenAirBrushInterface() {
         style={{
           position: "fixed",
           top: isMobile ? "20px" : "20px",
-          right: isMobile ? (mobileMenuOpen ? "auto" : "10px") : sidebarCollapsed ? "60px" : "270px",
+          right: "10px",
           zIndex: 2000,
-          width: isMobile ? "40px" : "45px",
-          height: isMobile ? "40px" : "45px",
+          width: isMobile ? "35px" : "45px",
+          height: isMobile ? "35px" : "45px",
           background: "rgba(255, 255, 0, 0.2)",
           border: "2px solid #ffff00",
-          borderRadius: "50%",
+          borderRadius: "10px",
           color: "#ffff00",
           fontSize: isMobile ? "18px" : "20px",
           cursor: "pointer",
@@ -354,11 +414,11 @@ function OpenAirBrushInterface() {
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           style={{
             position: "fixed",
-            top: "15px",
-            left: "15px",
+            top: "70px",
+            right: "10px",
             zIndex: 2000,
-            width: "50px",
-            height: "50px",
+            width: "35px",
+            height: "35px",
             background: "rgba(0, 255, 255, 0.2)",
             border: "2px solid #00ffff",
             borderRadius: "10px",
@@ -383,11 +443,12 @@ function OpenAirBrushInterface() {
             top: 0,
             left: 0,
             width: "auto",
+
             height: "100%",
             background: "rgba(0, 0, 0, 0.95)",
             zIndex: 1500,
             overflow: "auto",
-            padding: "80px 20px 20px",
+            padding: "15px",
           }}
         >
           {/* Mobile Tools */}
@@ -403,7 +464,7 @@ function OpenAirBrushInterface() {
                   }}
                   style={{
                     flex: 1,
-                    padding: "15px",
+                    padding: "5px 15px",
                     background: activeTool === t.id ? "rgba(0,255,255,0.25)" : "rgba(255,255,255,0.1)",
                     border: activeTool === t.id ? "2px solid #00ffff" : "1px solid rgba(255,255,255,0.3)",
                     borderRadius: "8px",
@@ -464,7 +525,7 @@ function OpenAirBrushInterface() {
             <button
               onClick={() => document.getElementById("imgUp").click()}
               style={{
-                padding: "12px",
+                padding: "5px 12px",
                 background: "rgba(0, 255, 255, 0.15)",
                 border: "1px solid #00ffff",
                 borderRadius: "8px",
@@ -506,7 +567,7 @@ function OpenAirBrushInterface() {
             <button
               onClick={handleExportImage}
               style={{
-                padding: "12px",
+                padding: "8px 15px",
                 background: "rgba(255, 0, 255, 0.15)",
                 border: "1px solid #ff00ff",
                 borderRadius: "8px",
@@ -524,14 +585,14 @@ function OpenAirBrushInterface() {
             onClick={handleClearScene}
             style={{
               width: "100%",
-              padding: "15px",
+              padding: "8px 15px",
               background: "rgba(255, 0, 0, 0.15)",
               border: "1px solid #ff0000",
               borderRadius: "8px",
               color: "#ff0000",
               cursor: "pointer",
               fontSize: "14px",
-              marginBottom: "20px",
+              marginBottom: "10px",
             }}
           >
             🗑️ Clear Scene
@@ -542,7 +603,7 @@ function OpenAirBrushInterface() {
             onClick={isRecording ? stopRecording : startRecording}
             style={{
               width: "100%",
-              padding: "15px",
+              padding: "8px 15px",
               background: isRecording ? "rgba(255,0,0,0.2)" : "rgba(0,255,0,0.15)",
               border: isRecording ? "1px solid #ff0000" : "1px solid #00ff00",
               borderRadius: "8px",
@@ -550,7 +611,7 @@ function OpenAirBrushInterface() {
               cursor: "pointer",
               fontSize: "14px",
               fontWeight: "bold",
-              marginBottom: "20px",
+              marginBottom: "10px",
             }}
           >
             {isRecording ? "⏹️ Stop " + formatTime(recordingTime) : "⏺ Record"}
@@ -559,7 +620,7 @@ function OpenAirBrushInterface() {
           {/* Mobile Gesture Instructions */}
           <div
             style={{
-              padding: "15px",
+              padding: "8px 15px",
               background: "rgba(0, 255, 255, 0.1)",
               borderRadius: "8px",
               border: "1px solid rgba(0, 255, 255, 0.3)",
