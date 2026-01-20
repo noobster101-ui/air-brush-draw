@@ -124,45 +124,53 @@ function HandDrawingScene({
     if (uploadedImage && imageMeshRef.current) {
       const loader = new THREE.TextureLoader();
       loader.setCrossOrigin(""); // Enable CORS for external images
+
+      // Create a loading state
+      setGestureStatus("📷 Loading image with full quality...");
+
       loader.load(
         uploadedImage,
         (texture) => {
           imageTextureRef.current = texture;
-          // Improve texture quality
-          texture.minFilter = THREE.LinearFilter;
+
+          // Maximum quality texture settings for perfect clarity
+          texture.minFilter = THREE.LinearMipmapLinearFilter;
           texture.magFilter = THREE.LinearFilter;
-          // Safely get anisotropy with fallback
-          const anisotropy = rendererRef.current?.capabilities ? Math.min(rendererRef.current.capabilities.getMaxAnisotropy(), 4) : 4;
-          texture.anisotropy = anisotropy;
+          texture.anisotropy = rendererRef.current?.capabilities ? rendererRef.current.capabilities.getMaxAnisotropy() : 4;
+          texture.generateMipmaps = true;
+          texture.encoding = THREE.sRGBEncoding;
 
           if (imageMeshRef.current) {
-            imageMeshRef.current.material.map = texture;
-            imageMeshRef.current.material.opacity = 0.9; // Slightly more opaque
-            imageMeshRef.current.material.needsUpdate = true;
-            imageMeshRef.current.visible = true;
+            // Use high-quality material for perfect image display
+            imageMeshRef.current.material = new THREE.MeshBasicMaterial({
+              map: texture,
+              transparent: true,
+              opacity: 1.0, // Full opacity for perfect clarity
+              side: THREE.DoubleSide,
+              depthWrite: false,
+              depthTest: true,
+            });
 
-            // Adjust plane size based on image aspect ratio
+            // Adjust plane size to match image aspect ratio exactly
             const imageAspect = texture.image ? texture.image.width / texture.image.height : 4 / 3;
-            const baseSize = 4;
+            const maxSize = Math.min(window.innerWidth, window.innerHeight) * 0.8; // 80% of screen
+            const baseSize = Math.min(maxSize, 10); // Cap at reasonable size
+
             imageMeshRef.current.geometry.dispose();
             imageMeshRef.current.geometry = new THREE.PlaneGeometry(baseSize, baseSize / imageAspect);
 
-            // Reset image transforms
-            if (sceneRef.current) {
+            // Position image prominently in 3D space
+            imageMeshRef.current.position.set(0, 0, 1);
+            imageMeshRef.current.rotation.set(0, 0, 0);
+            imageMeshRef.current.scale.set(1, 1, 1);
+            imageMeshRef.current.visible = true;
+
+            // Register with physics engine for smooth animations
+            if (sceneRef.current && physicsEngineRef.current) {
               physicsEngineRef.current.registerObject(imageMeshRef.current, { mass: 0 });
-              physicsEngineRef.current.animateTo(
-                imageMeshRef.current,
-                {
-                  position: new THREE.Vector3(0, 0, 2),
-                  rotation: new THREE.Euler(0, 0, 0),
-                  scale: new THREE.Vector3(1, 1, 1),
-                },
-                500,
-                "easeOutQuad"
-              );
             }
 
-            setGestureStatus("🖼️ Image loaded! Use gestures to control");
+            setGestureStatus("🖼️ Image loaded! Click 'Export to 3D' to create 3D object");
           }
         },
         undefined,
@@ -1065,21 +1073,31 @@ function HandDrawingScene({
             left: "50%",
             transform: "translate(-50%, -50%)",
             zIndex: 50,
-            background: "rgba(0,0,0,0.9)",
+            background: "rgba(0,0,0,0.95)",
             padding: "20px",
             borderRadius: "15px",
             border: "2px solid #00ffff",
-            boxShadow: "0 0 30px rgba(0, 255, 255, 0.5)",
+            boxShadow: "0 0 50px rgba(0, 255, 255, 0.7)",
             textAlign: "center",
+            maxWidth: "90vw",
+            maxHeight: "90vh",
+            overflow: "auto",
           }}
         >
-          <h3 style={{ color: "#00ffff", marginBottom: "15px" }}>📷 Uploaded Image</h3>
+          <h3 style={{ color: "#00ffff", marginBottom: "15px", fontSize: "20px" }}>🖼️ Image Preview</h3>
           <img
             src={uploadedImage}
             alt="Uploaded"
-            style={{ maxWidth: "400px", maxHeight: "300px", borderRadius: "8px", border: "1px solid #00ffff" }}
+            style={{
+              maxWidth: "100%",
+              maxHeight: "60vh",
+              borderRadius: "8px",
+              border: "2px solid #00ffff",
+              objectFit: "contain",
+              boxShadow: "0 0 20px rgba(0, 255, 255, 0.3)",
+            }}
           />
-          <div style={{ marginTop: "15px", display: "flex", gap: "10px", justifyContent: "center" }}>
+          <div style={{ marginTop: "20px", display: "flex", gap: "15px", justifyContent: "center", flexWrap: "wrap" }}>
             <button
               onClick={async () => {
                 try {
@@ -1088,16 +1106,37 @@ function HandDrawingScene({
                     airBrushHUDRef.current.showSuccess(new THREE.Vector3(0, 0, 0));
                   }
 
-                  // Create physics-based image object
-                  if (physicsEngineRef.current && sceneRef.current) {
-                    const imgObj = new THREE.Object3D();
-                    imgObj.position.set(0, 0, 0);
-                    sceneRef.current.add(imgObj);
-                    physicsEngineRef.current.registerObject(imgObj, { mass: 1 });
+                  // Create physics-based image object with perfect clarity
+                  if (physicsEngineRef.current && sceneRef.current && imageTextureRef.current) {
+                    const imgGroup = new THREE.Group();
+
+                    // Create main image plane with high quality
+                    const imageAspect = imageTextureRef.current.image
+                      ? imageTextureRef.current.image.width / imageTextureRef.current.image.height
+                      : 4 / 3;
+                    const maxSize = Math.min(window.innerWidth, window.innerHeight) * 0.6;
+                    const baseSize = Math.min(maxSize, 8);
+
+                    const imgGeometry = new THREE.PlaneGeometry(baseSize, baseSize / imageAspect);
+                    const imgMaterial = new THREE.MeshBasicMaterial({
+                      map: imageTextureRef.current,
+                      transparent: true,
+                      opacity: 1.0,
+                      side: THREE.DoubleSide,
+                      depthWrite: false,
+                    });
+
+                    const imgMesh = new THREE.Mesh(imgGeometry, imgMaterial);
+                    imgGroup.add(imgMesh);
+
+                    imgGroup.position.set(0, 0, 0);
+                    imgGroup.name = "image3DObject";
+                    sceneRef.current.add(imgGroup);
+                    physicsEngineRef.current.registerObject(imgGroup, { mass: 0.5 });
 
                     // Animate with bounce effect
                     physicsEngineRef.current.animateTo(
-                      imgObj,
+                      imgGroup,
                       {
                         position: new THREE.Vector3(0, 0, 2),
                         rotation: new THREE.Euler(0, Math.PI * 0.1, 0),
@@ -1108,28 +1147,40 @@ function HandDrawingScene({
                     );
                   }
 
-                  setGestureStatus("🎯 Image loaded with physics!");
+                  setGestureStatus("🎯 3D Image object created successfully!");
                   // Close the modal
                   const event = new CustomEvent("closeImage");
                   window.dispatchEvent(event);
                 } catch (error) {
-                  console.error("Failed to load image:", error);
-                  setGestureStatus("❌ Failed to load image");
+                  console.error("Failed to export to 3D:", error);
+                  setGestureStatus("❌ Failed to create 3D object");
                   if (airBrushHUDRef.current) {
                     airBrushHUDRef.current.showError(new THREE.Vector3(0, 0, 0));
                   }
                 }
               }}
               style={{
-                padding: "10px 20px",
-                background: "rgba(0, 255, 255, 0.2)",
-                border: "1px solid #00ffff",
-                borderRadius: "6px",
+                padding: "15px 30px",
+                background: "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(0, 150, 255, 0.3))",
+                border: "2px solid #00ffff",
+                borderRadius: "10px",
                 color: "#00ffff",
                 cursor: "pointer",
+                fontSize: "16px",
+                fontWeight: "bold",
+                transition: "all 0.3s ease",
+                boxShadow: "0 0 20px rgba(0, 255, 255, 0.4)",
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = "linear-gradient(135deg, rgba(0, 255, 255, 0.5), rgba(0, 150, 255, 0.5))";
+                e.target.style.boxShadow = "0 0 30px rgba(0, 255, 255, 0.6)";
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(0, 150, 255, 0.3))";
+                e.target.style.boxShadow = "0 0 20px rgba(0, 255, 255, 0.4)";
               }}
             >
-              🔄 Create 3D Object
+              🚀 Export to 3D
             </button>
             <button
               onClick={() => {
@@ -1137,17 +1188,30 @@ function HandDrawingScene({
                 window.dispatchEvent(event);
               }}
               style={{
-                padding: "10px 20px",
-                background: "rgba(255, 0, 0, 0.2)",
-                border: "1px solid #ff0000",
-                borderRadius: "6px",
-                color: "#ff0000",
+                padding: "15px 30px",
+                background: "linear-gradient(135deg, rgba(255, 0, 0, 0.3), rgba(255, 100, 0, 0.3))",
+                border: "2px solid #ff4444",
+                borderRadius: "10px",
+                color: "#ff4444",
                 cursor: "pointer",
+                fontSize: "16px",
+                fontWeight: "bold",
+                transition: "all 0.3s ease",
+                boxShadow: "0 0 20px rgba(255, 68, 68, 0.4)",
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = "linear-gradient(135deg, rgba(255, 0, 0, 0.5), rgba(255, 100, 0, 0.5))";
+                e.target.style.boxShadow = "0 0 30px rgba(255, 68, 68, 0.6)";
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = "linear-gradient(135deg, rgba(255, 0, 0, 0.3), rgba(255, 100, 0, 0.3))";
+                e.target.style.boxShadow = "0 0 20px rgba(255, 68, 68, 0.4)";
               }}
             >
               ❌ Close
             </button>
           </div>
+          <div style={{ marginTop: "15px", color: "#00ff88", fontSize: "14px" }}>✨ Image quality preserved at maximum clarity</div>
         </div>
       )}
 
