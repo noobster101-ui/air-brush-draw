@@ -20,6 +20,8 @@ function HandDrawingScene({
   isRecording,
   selectedGlove = "skeleton",
   uploadedImage = null,
+  sidebarCollapsed = false,
+  isMobile = false,
   onImageUpload,
 }) {
   const videoRef = useRef(null);
@@ -1140,190 +1142,164 @@ function HandDrawingScene({
         </div>
       )}
 
-      {/* Floating Control Card */}
+      {/* Compact Floating Control Card */}
       <div
         style={{
           position: "fixed",
-          bottom: "20px",
-          right: "20px",
-          background: "rgba(0,0,0,0.9)",
+          bottom: isMobile ? "10px" : "20px",
+          right: isMobile ? "10px" : "20px",
+          background: isMobile ? "rgba(0,0,0,0.9)" : "rgba(0,0,0,0.9)",
           color: "white",
-          padding: "20px",
-          borderRadius: "15px",
+          padding: isMobile ? "12px" : "15px",
+          borderRadius: isMobile ? "10px" : "12px",
           fontFamily: "Arial, sans-serif",
-          fontSize: "13px",
+          fontSize: isMobile ? "11px" : "12px",
           zIndex: 100,
-          minWidth: "280px",
+          minWidth: isMobile ? "160px" : "200px",
           border: handDetected ? "2px solid #00ff00" : "2px solid #ffaa00",
-          boxShadow: "0 0 25px rgba(0, 255, 255, 0.4)",
+          boxShadow: "0 0 20px rgba(0, 255, 255, 0.3)",
+          transition: "all 0.3s ease",
         }}
       >
-        <div style={{ color: "#00ffff", fontWeight: "bold", marginBottom: "12px", fontSize: "17px", textAlign: "center" }}>
-          ✋ Open Air Brush
+        {/* Header - App Name */}
+        <div
+          style={{
+            color: "#00ffff",
+            fontWeight: "bold",
+            marginBottom: isMobile ? "6px" : "8px",
+            fontSize: isMobile ? "13px" : "14px",
+            textAlign: "center",
+          }}
+        >
+          ✋ Air Brush
         </div>
 
-        <div style={{ color: handDetected ? "#00ff00" : "#ffaa00", marginBottom: "10px", textAlign: "center", fontSize: "14px" }}>
-          {handDetected ? `✓ ${handCount} Hand${handCount > 1 ? "s" : ""} Detected` : "⏳ Show your hand"}
+        {/* Hand Detection Status */}
+        <div
+          style={{
+            color: handDetected ? "#00ff00" : "#ffaa00",
+            marginBottom: isMobile ? "6px" : "8px",
+            textAlign: "center",
+            fontSize: isMobile ? "12px" : "13px",
+          }}
+        >
+          {handDetected ? `✓ ${handCount} Hand${handCount > 1 ? "s" : ""}` : "⏳ No hand"}
         </div>
 
+        {/* Gesture Status */}
         <div
           style={{
             color: "#ffff00",
             fontWeight: "bold",
-            marginBottom: "10px",
-            fontSize: "14px",
+            marginBottom: isMobile ? "6px" : "8px",
+            fontSize: isMobile ? "11px" : "12px",
             textAlign: "center",
-            padding: "8px",
+            padding: isMobile ? "5px" : "6px",
             background: "rgba(255,255,0,0.1)",
-            borderRadius: "6px",
+            borderRadius: "4px",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            maxWidth: isMobile ? "150px" : "200px",
           }}
+          title={gestureStatus}
         >
-          🎯 {gestureStatus}
+          🎯 {gestureStatus.length > 25 ? gestureStatus.substring(0, 25) + "..." : gestureStatus}
         </div>
 
-        {/* Current Settings */}
-        <div
-          style={{
-            background: "rgba(255,0,255,0.15)",
-            padding: "12px",
-            borderRadius: "8px",
-            marginBottom: "10px",
-            border: "1px solid #ff00ff",
-          }}
-        >
-          <div style={{ color: "#ff00ff", fontWeight: "bold", marginBottom: "6px" }}>📋 Current:</div>
-          <div>
-            🎨 Color:{" "}
+        {/* Current Mode & Recording */}
+        <div style={{ display: "flex", justifyContent: "center", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+          <span
+            style={{
+              color: activeTool === "draw" ? "#00ff00" : "#ff6666",
+              fontSize: isMobile ? "12px" : "13px",
+              fontWeight: "bold",
+            }}
+          >
+            {activeTool === "draw" ? "✏️ Draw" : "🧽 Erase"}
+          </span>
+
+          {isRecording && (
             <span
               style={{
-                display: "inline-block",
-                width: "16px",
-                height: "16px",
-                background: selectedColor,
-                borderRadius: "3px",
-                verticalAlign: "middle",
-                border: "1px solid #fff",
+                color: "#ff0000",
+                fontWeight: "bold",
+                fontSize: isMobile ? "11px" : "12px",
+                animation: "blink 0.5s infinite",
+                padding: isMobile ? "2px 6px" : "3px 8px",
+                background: "rgba(255,0,0,0.3)",
+                borderRadius: "4px",
               }}
-            ></span>
-          </div>
-          <div>📏 Size: {brushSize.toFixed(2)}</div>
-          <div>
-            🧤 Glove: <span style={{ textTransform: "capitalize", color: "#00ffff" }}>{selectedGlove}</span>
-          </div>
-          <div>
-            🎯 Mode:{" "}
-            <span style={{ color: activeTool === "draw" ? "#00ff00" : "#ff0000" }}>{activeTool === "draw" ? "✏️ DRAW" : "🧽 ERASE"}</span>
-          </div>
+            >
+              ● REC
+            </span>
+          )}
         </div>
 
-        {/* Instructions */}
-        <div
-          style={{
-            background: "rgba(0,255,0,0.15)",
-            padding: "12px",
-            borderRadius: "8px",
-            marginBottom: "10px",
-            border: "1px solid #00ff00",
-          }}
-        >
-          <div style={{ color: "#00ff00", fontWeight: "bold", marginBottom: "6px" }}>✋ Controls:</div>
-          <div>✏️ Move finger = Draw</div>
-          <div>🧽 Move finger = Erase</div>
-          <div>✋ Pinch = Stop draw/erase</div>
-          <div>🙌 Two hands = Zoom</div>
-        </div>
+        {/* Mobile Mini Quick Actions */}
+        {isMobile && (
+          <div style={{ marginTop: "8px", display: "flex", gap: "5px", justifyContent: "center" }}>
+            <button
+              onClick={() => document.getElementById("imageUpload").click()}
+              style={{
+                padding: "5px 8px",
+                background: "rgba(0, 255, 255, 0.2)",
+                border: "1px solid #00ffff",
+                borderRadius: "4px",
+                color: "#00ffff",
+                cursor: "pointer",
+                fontSize: "10px",
+              }}
+              title="Upload Image"
+            >
+              📷
+            </button>
+            <button
+              onClick={window.saveProject}
+              style={{
+                padding: "5px 8px",
+                background: "rgba(255, 255, 0, 0.2)",
+                border: "1px solid #ffff00",
+                borderRadius: "4px",
+                color: "#ffff00",
+                cursor: "pointer",
+                fontSize: "10px",
+              }}
+              title="Save"
+            >
+              💾
+            </button>
+            <button
+              onClick={window.clearScene}
+              style={{
+                padding: "5px 8px",
+                background: "rgba(255, 0, 0, 0.2)",
+                border: "1px solid #ff0000",
+                borderRadius: "4px",
+                color: "#ff0000",
+                cursor: "pointer",
+                fontSize: "10px",
+              }}
+              title="Clear"
+            >
+              🗑️
+            </button>
+          </div>
+        )}
 
-        {/* File Operations */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginTop: "10px" }}>
-          <button
-            onClick={() => document.getElementById("imageUpload").click()}
-            style={{
-              padding: "10px",
-              background: "rgba(0, 255, 255, 0.2)",
-              border: "1px solid #00ffff",
-              borderRadius: "6px",
-              color: "#00ffff",
-              cursor: "pointer",
-              fontSize: "11px",
-            }}
-          >
-            📷 Upload Image
-          </button>
-          <button
-            onClick={() => uploadedImage && setShowImageModal(true)}
-            disabled={!uploadedImage}
-            style={{
-              padding: "10px",
-              background: uploadedImage ? "rgba(0, 255, 255, 0.2)" : "rgba(128, 128, 128, 0.2)",
-              border: `1px solid ${uploadedImage ? "#00ffff" : "#666"}`,
-              borderRadius: "6px",
-              color: uploadedImage ? "#00ffff" : "#666",
-              cursor: uploadedImage ? "pointer" : "not-allowed",
-              fontSize: "11px",
-            }}
-          >
-            🎯 Make 3D
-          </button>
-          <button
-            onClick={window.saveProject}
-            style={{
-              padding: "10px",
-              background: "rgba(255, 255, 0, 0.2)",
-              border: "1px solid #ffff00",
-              borderRadius: "6px",
-              color: "#ffff00",
-              cursor: "pointer",
-              fontSize: "11px",
-            }}
-          >
-            💾 Save
-          </button>
-          <button
-            onClick={() => document.getElementById("loadProject").click()}
-            style={{
-              padding: "10px",
-              background: "rgba(0, 255, 0, 0.2)",
-              border: "1px solid #00ff00",
-              borderRadius: "6px",
-              color: "#00ff00",
-              cursor: "pointer",
-              fontSize: "11px",
-            }}
-          >
-            📂 Load
-          </button>
-        </div>
-
-        <input id="imageUpload" type="file" accept="image/*" onChange={onImageUpload} style={{ display: "none" }} />
-        <input
-          id="loadProject"
-          type="file"
-          accept=".json"
-          onChange={(e) => {
-            const file = e.target.files[0];
-            if (file) {
-              const reader = new FileReader();
-              reader.onload = (ev) => {
-                if (window.loadProject) window.loadProject(ev.target.result);
-              };
-              reader.readAsText(file);
-            }
-          }}
-          style={{ display: "none" }}
-        />
-
-        {isRecording && (
+        {/* Desktop - Recording Indicator */}
+        {!isMobile && isRecording && (
           <div
             style={{
-              marginTop: "12px",
+              marginTop: "10px",
               color: "#ff0000",
               fontWeight: "bold",
-              fontSize: "16px",
+              fontSize: "12px",
               textAlign: "center",
               animation: "blink 0.5s infinite",
-              padding: "10px",
-              background: "rgba(255,0,0,0.3)",
-              borderRadius: "6px",
+              padding: "6px",
+              background: "rgba(255,0,0,0.2)",
+              borderRadius: "4px",
               border: "1px solid #ff0000",
             }}
           >
@@ -1331,17 +1307,21 @@ function HandDrawingScene({
           </div>
         )}
 
-        <div
-          style={{
-            marginTop: "12px",
-            paddingTop: "12px",
-            borderTop: "1px solid rgba(255,255,255,0.2)",
-            fontSize: "11px",
-            color: "rgba(255,255,255,0.7)",
-          }}
-        >
-          ⌨️ Ctrl+Z Undo | Ctrl+S Save
-        </div>
+        {/* Mini hint */}
+        {!isMobile && (
+          <div
+            style={{
+              marginTop: "8px",
+              paddingTop: "6px",
+              borderTop: "1px solid rgba(255,255,255,0.2)",
+              fontSize: "9px",
+              color: "rgba(255,255,255,0.6)",
+              textAlign: "center",
+            }}
+          >
+            Ctrl+Z = Undo
+          </div>
+        )}
       </div>
 
       <style>{`@keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0.3; } }`}</style>

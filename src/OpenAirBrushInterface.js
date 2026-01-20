@@ -15,6 +15,9 @@ function OpenAirBrushInterface() {
   const [showGrid, setShowGrid] = useState(true);
   const [selectedGlove, setSelectedGlove] = useState("skeleton");
   const [uploadedImage, setUploadedImage] = useState(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const loadInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
@@ -48,6 +51,16 @@ function OpenAirBrushInterface() {
   ];
 
   useEffect(() => {
+    // Mobile detection
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+      if (window.innerWidth <= 768) {
+        setSidebarCollapsed(true);
+      }
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
     const handleKeyDown = (e) => {
       if (e.ctrlKey || e.metaKey) {
         if (e.key === "z") {
@@ -66,7 +79,10 @@ function OpenAirBrushInterface() {
       }
     };
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("resize", checkMobile);
+    };
   }, []);
 
   const handleSaveProject = () => {
@@ -123,19 +139,286 @@ function OpenAirBrushInterface() {
       .toString()
       .padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
+  // Sidebar toggle function
+  const toggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
+
   return (
     <div style={{ display: "flex", height: "100vh", background: "#0a0a1a", fontFamily: "Arial, sans-serif", overflow: "hidden" }}>
+      {/* Mobile Hamburger Menu Button */}
+      {isMobile && (
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          style={{
+            position: "fixed",
+            top: "15px",
+            left: "15px",
+            zIndex: 2000,
+            width: "50px",
+            height: "50px",
+            background: "rgba(0, 255, 255, 0.2)",
+            border: "2px solid #00ffff",
+            borderRadius: "10px",
+            color: "#00ffff",
+            fontSize: "24px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 0 15px rgba(0, 255, 255, 0.4)",
+          }}
+        >
+          {mobileMenuOpen ? "✕" : "☰"}
+        </button>
+      )}
+
+      {/* Mobile Overlay Menu */}
+      {isMobile && mobileMenuOpen && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background: "rgba(0, 0, 0, 0.95)",
+            zIndex: 1500,
+            overflow: "auto",
+            padding: "80px 20px 20px",
+          }}
+        >
+          {/* Mobile Tools */}
+          <div style={{ marginBottom: "20px" }}>
+            <h3 style={{ color: "#00ffff", marginBottom: "10px", fontSize: "14px", textTransform: "uppercase" }}>Tools</h3>
+            <div style={{ display: "flex", gap: "10px" }}>
+              {tools.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    setActiveTool(t.id);
+                    setMobileMenuOpen(false);
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: "15px",
+                    background: activeTool === t.id ? "rgba(0,255,255,0.25)" : "rgba(255,255,255,0.1)",
+                    border: activeTool === t.id ? "2px solid #00ffff" : "1px solid rgba(255,255,255,0.3)",
+                    borderRadius: "8px",
+                    color: "#fff",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                  }}
+                >
+                  <span style={{ fontSize: "24px" }}>{t.icon}</span>
+                  <br />
+                  <span>{t.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Mobile Colors */}
+          <div style={{ marginBottom: "20px" }}>
+            <h3 style={{ color: "#00ffff", marginBottom: "10px", fontSize: "14px", textTransform: "uppercase" }}>Colors</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "6px" }}>
+              {colors.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => {
+                    setSelectedColor(c);
+                    setMobileMenuOpen(false);
+                  }}
+                  style={{
+                    aspectRatio: "1",
+                    background: c,
+                    border: selectedColor === c ? "3px solid #fff" : "2px solid rgba(255,255,255,0.3)",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Mobile Brush Size */}
+          <div style={{ marginBottom: "20px" }}>
+            <h3 style={{ color: "#00ffff", marginBottom: "8px", fontSize: "14px", textTransform: "uppercase" }}>
+              Brush Size: {brushSize.toFixed(2)}
+            </h3>
+            <input
+              type="range"
+              min="0.05"
+              max="0.3"
+              step="0.01"
+              value={brushSize}
+              onChange={(e) => setBrushSize(parseFloat(e.target.value))}
+              style={{ width: "100%", height: "30px" }}
+            />
+          </div>
+
+          {/* Mobile Actions */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", marginBottom: "20px" }}>
+            <button
+              onClick={() => document.getElementById("imgUp").click()}
+              style={{
+                padding: "12px",
+                background: "rgba(0, 255, 255, 0.15)",
+                border: "1px solid #00ffff",
+                borderRadius: "8px",
+                color: "#00ffff",
+                cursor: "pointer",
+                fontSize: "12px",
+              }}
+            >
+              📷 Upload
+            </button>
+            <button
+              onClick={handleSaveProject}
+              style={{
+                padding: "12px",
+                background: "rgba(255, 255, 0, 0.15)",
+                border: "1px solid #ffff00",
+                borderRadius: "8px",
+                color: "#ffff00",
+                cursor: "pointer",
+                fontSize: "12px",
+              }}
+            >
+              💾 Save
+            </button>
+            <button
+              onClick={() => loadInputRef.current?.click()}
+              style={{
+                padding: "12px",
+                background: "rgba(0, 255, 0, 0.15)",
+                border: "1px solid #00ff00",
+                borderRadius: "8px",
+                color: "#00ff00",
+                cursor: "pointer",
+                fontSize: "12px",
+              }}
+            >
+              📂 Load
+            </button>
+            <button
+              onClick={handleExportImage}
+              style={{
+                padding: "12px",
+                background: "rgba(255, 0, 255, 0.15)",
+                border: "1px solid #ff00ff",
+                borderRadius: "8px",
+                color: "#ff00ff",
+                cursor: "pointer",
+                fontSize: "12px",
+              }}
+            >
+              📤 Export
+            </button>
+          </div>
+
+          {/* Mobile Clear Button */}
+          <button
+            onClick={handleClearScene}
+            style={{
+              width: "100%",
+              padding: "15px",
+              background: "rgba(255, 0, 0, 0.15)",
+              border: "1px solid #ff0000",
+              borderRadius: "8px",
+              color: "#ff0000",
+              cursor: "pointer",
+              fontSize: "14px",
+              marginBottom: "20px",
+            }}
+          >
+            🗑️ Clear Scene
+          </button>
+
+          {/* Mobile Recording */}
+          <button
+            onClick={isRecording ? stopRecording : startRecording}
+            style={{
+              width: "100%",
+              padding: "15px",
+              background: isRecording ? "rgba(255,0,0,0.2)" : "rgba(0,255,0,0.15)",
+              border: isRecording ? "1px solid #ff0000" : "1px solid #00ff00",
+              borderRadius: "8px",
+              color: isRecording ? "#ff0000" : "#00ff00",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: "bold",
+              marginBottom: "20px",
+            }}
+          >
+            {isRecording ? "⏹️ Stop " + formatTime(recordingTime) : "⏺ Record"}
+          </button>
+
+          {/* Mobile Gesture Instructions */}
+          <div
+            style={{
+              padding: "15px",
+              background: "rgba(0, 255, 255, 0.1)",
+              borderRadius: "8px",
+              border: "1px solid rgba(0, 255, 255, 0.3)",
+              fontSize: "12px",
+              color: "rgba(255,255,255,0.8)",
+            }}
+          >
+            <strong style={{ color: "#00ffff" }}>✋ Gestures:</strong>
+            <br />
+            ✏️ Move finger = Draw
+            <br />
+            🧽 Move finger = Erase
+            <br />
+            ✋ Pinch = Stop
+            <br />
+            🙌 Two hands = Zoom
+          </div>
+        </div>
+      )}
+
+      {/* Sidebar Toggle Button (Desktop) */}
+      {!isMobile && (
+        <button
+          onClick={toggleSidebar}
+          style={{
+            position: "fixed",
+            left: sidebarCollapsed ? "10px" : "290px",
+            top: "15px",
+            zIndex: 2000,
+            width: "40px",
+            height: "40px",
+            background: "rgba(0, 255, 255, 0.2)",
+            border: "2px solid #00ffff",
+            borderRadius: "8px",
+            color: "#00ffff",
+            fontSize: "18px",
+            cursor: "pointer",
+            transition: "left 0.3s ease",
+            boxShadow: "0 0 15px rgba(0, 255, 255, 0.4)",
+          }}
+          title={sidebarCollapsed ? "Show Sidebar" : "Hide Sidebar"}
+        >
+          {sidebarCollapsed ? "▶" : "◀"}
+        </button>
+      )}
+
+      {/* Collapsible Sidebar */}
       <div
         style={{
-          width: "260px",
+          width: sidebarCollapsed || isMobile ? "0px" : "260px",
           background: "rgba(15, 20, 35, 0.98)",
           borderRight: "2px solid #00ffff",
-          padding: "15px",
+          padding: sidebarCollapsed || isMobile ? "0px" : "15px",
           overflowY: "auto",
+          overflowX: "hidden",
           boxShadow: "4px 0 20px rgba(0, 255, 255, 0.15)",
           zIndex: 1000,
           position: "relative",
           flexShrink: 0,
+          transition: "all 0.3s ease",
+          opacity: sidebarCollapsed || isMobile ? 0 : 1,
         }}
       >
         <div style={{ textAlign: "center", marginBottom: "15px", borderBottom: "2px solid #00ffff", paddingBottom: "12px" }}>
@@ -381,7 +664,9 @@ function OpenAirBrushInterface() {
           <strong style={{ color: "#00ffff" }}>Gestures:</strong> Pinch to draw, Two hands zoom, Open palm reset
         </div>
       </div>
-      <div style={{ flex: 1, position: "relative", overflow: "hidden", zIndex: 1 }}>
+      <div
+        style={{ flex: 1, position: "relative", overflow: "hidden", zIndex: 1, marginLeft: sidebarCollapsed && !isMobile ? "0px" : "0px" }}
+      >
         <HandDrawingScene
           activeTool={activeTool}
           selectedColor={selectedColor}
@@ -391,6 +676,8 @@ function OpenAirBrushInterface() {
           isRecording={isRecording}
           selectedGlove={selectedGlove}
           uploadedImage={uploadedImage}
+          sidebarCollapsed={sidebarCollapsed}
+          isMobile={isMobile}
           onImageUpload={(e) => {
             const f = e.target.files[0];
             if (f) {
