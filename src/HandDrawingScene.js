@@ -33,6 +33,7 @@ function HandDrawingScene({
   const [handDetected, setHandDetected] = useState(false);
   const [handCount, setHandCount] = useState(0);
   const [gestureStatus, setGestureStatus] = useState("Loading camera...");
+  const [showImageModal, setShowImageModal] = useState(false);
 
   const currentColorRef = useRef(parseInt(selectedColor.replace("#", "0x"), 16));
   const currentBrushSizeRef = useRef(brushSize || 0.08); // Smaller default brush size for better detail
@@ -119,14 +120,14 @@ function HandDrawingScene({
     currentGloveRef.current = selectedGlove;
   }, [selectedColor, brushSize, activeTool, selectedGlove]);
 
-  // Handle uploaded image
+  // Handle uploaded image - load texture but don't display yet
   useEffect(() => {
-    if (uploadedImage && imageMeshRef.current) {
+    if (uploadedImage) {
       const loader = new THREE.TextureLoader();
       loader.setCrossOrigin(""); // Enable CORS for external images
 
       // Create a loading state
-      setGestureStatus("📷 Loading image with full quality...");
+      setGestureStatus("📷 Image loaded! Click 'Make 3D' to display");
 
       loader.load(
         uploadedImage,
@@ -140,38 +141,28 @@ function HandDrawingScene({
           texture.generateMipmaps = true;
           texture.colorSpace = THREE.SRGBColorSpace;
 
+          // Just prepare the material but DON'T make visible yet
           if (imageMeshRef.current) {
-            // Use high-quality material for perfect image display
             imageMeshRef.current.material = new THREE.MeshBasicMaterial({
               map: texture,
               transparent: true,
-              opacity: 1.0, // Full opacity for perfect clarity
+              opacity: 0,
               side: THREE.DoubleSide,
               depthWrite: false,
               depthTest: true,
             });
 
-            // Adjust plane size to match image aspect ratio exactly
+            // Adjust plane size to match image aspect ratio
             const imageAspect = texture.image ? texture.image.width / texture.image.height : 4 / 3;
-            const maxSize = Math.min(window.innerWidth, window.innerHeight) * 0.8; // 80% of screen
-            const baseSize = Math.min(maxSize, 10); // Cap at reasonable size
+            const baseSize = 4; // Fixed size for consistent display
 
             imageMeshRef.current.geometry.dispose();
             imageMeshRef.current.geometry = new THREE.PlaneGeometry(baseSize, baseSize / imageAspect);
-
-            // Position image prominently in 3D space
-            imageMeshRef.current.position.set(0, 0, 1);
-            imageMeshRef.current.rotation.set(0, 0, 0);
-            imageMeshRef.current.scale.set(1, 1, 1);
-            imageMeshRef.current.visible = true;
-
-            // Register with physics engine for smooth animations
-            if (sceneRef.current && physicsEngineRef.current) {
-              physicsEngineRef.current.registerObject(imageMeshRef.current, { mass: 0 });
-            }
-
-            setGestureStatus("🖼️ Image loaded! Click 'Export to 3D' to create 3D object");
           }
+
+          setGestureStatus("📷 Image loaded! Click 'Make 3D' to display");
+          // Show modal automatically after image loads
+          setShowImageModal(true);
         },
         undefined,
         (error) => {
@@ -509,7 +500,7 @@ function HandDrawingScene({
 
     // MediaPipe Hands
     const hands = new Hands({
-      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+      locateFile: (file) => `https://unpkg.com/@mediapipe/hands@0.4.1675469240/${file}`,
     });
     hands.setOptions({
       maxNumHands: 2,
@@ -1043,15 +1034,15 @@ function HandDrawingScene({
         }}
       />
 
-      {/* Uploaded Image Display with 3D Creation */}
-      {uploadedImage && (
+      {/* Uploaded Image Modal - only show when triggered */}
+      {uploadedImage && showImageModal && (
         <div
           style={{
             position: "fixed",
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            zIndex: 50,
+            zIndex: 1000, // Higher than all canvases
             background: "rgba(0,0,0,0.95)",
             padding: "20px",
             borderRadius: "15px",
@@ -1078,65 +1069,21 @@ function HandDrawingScene({
           />
           <div style={{ marginTop: "20px", display: "flex", gap: "15px", justifyContent: "center", flexWrap: "wrap" }}>
             <button
-              onClick={async () => {
-                try {
-                  // Load image using AirBrushHUD success animation
-                  if (airBrushHUDRef.current) {
-                    airBrushHUDRef.current.showSuccess(new THREE.Vector3(0, 0, 0));
-                  }
+              onClick={() => {
+                // Make image visible in 3D scene
+                if (imageMeshRef.current && imageTextureRef.current) {
+                  imageMeshRef.current.visible = true;
+                  imageMeshRef.current.material.opacity = 1.0;
+                  imageMeshRef.current.position.set(0, 0, 2);
+                  imageMeshRef.current.scale.set(1, 1, 1);
+                  setGestureStatus("🖼️ Image displayed! Touch to move, two hands to zoom");
 
-                  // Create physics-based image object with perfect clarity
-                  if (physicsEngineRef.current && sceneRef.current && imageTextureRef.current) {
-                    const imgGroup = new THREE.Group();
-
-                    // Create main image plane with high quality
-                    const imageAspect = imageTextureRef.current.image
-                      ? imageTextureRef.current.image.width / imageTextureRef.current.image.height
-                      : 4 / 3;
-                    const maxSize = Math.min(window.innerWidth, window.innerHeight) * 0.6;
-                    const baseSize = Math.min(maxSize, 8);
-
-                    const imgGeometry = new THREE.PlaneGeometry(baseSize, baseSize / imageAspect);
-                    const imgMaterial = new THREE.MeshBasicMaterial({
-                      map: imageTextureRef.current,
-                      transparent: true,
-                      opacity: 1.0,
-                      side: THREE.DoubleSide,
-                      depthWrite: false,
-                    });
-
-                    const imgMesh = new THREE.Mesh(imgGeometry, imgMaterial);
-                    imgGroup.add(imgMesh);
-
-                    imgGroup.position.set(0, 0, 0);
-                    imgGroup.name = "image3DObject";
-                    sceneRef.current.add(imgGroup);
-                    physicsEngineRef.current.registerObject(imgGroup, { mass: 0.5 });
-
-                    // Animate with bounce effect
-                    physicsEngineRef.current.animateTo(
-                      imgGroup,
-                      {
-                        position: new THREE.Vector3(0, 0, 2),
-                        rotation: new THREE.Euler(0, Math.PI * 0.1, 0),
-                        scale: new THREE.Vector3(1, 1, 1),
-                      },
-                      1000,
-                      "easeOutBounce"
-                    );
-                  }
-
-                  setGestureStatus("🎯 3D Image object created successfully!");
-                  // Close the modal
-                  const event = new CustomEvent("closeImage");
-                  window.dispatchEvent(event);
-                } catch (error) {
-                  console.error("Failed to export to 3D:", error);
-                  setGestureStatus("❌ Failed to create 3D object");
-                  if (airBrushHUDRef.current) {
-                    airBrushHUDRef.current.showError(new THREE.Vector3(0, 0, 0));
+                  // Register with physics engine
+                  if (sceneRef.current && physicsEngineRef.current) {
+                    physicsEngineRef.current.registerObject(imageMeshRef.current, { mass: 0 });
                   }
                 }
+                setShowImageModal(false);
               }}
               style={{
                 padding: "15px 30px",
@@ -1159,12 +1106,11 @@ function HandDrawingScene({
                 e.target.style.boxShadow = "0 0 20px rgba(0, 255, 255, 0.4)";
               }}
             >
-              🚀 Export to 3D
+              🚀 Make 3D
             </button>
             <button
               onClick={() => {
-                const event = new CustomEvent("closeImage");
-                window.dispatchEvent(event);
+                setShowImageModal(false);
               }}
               style={{
                 padding: "15px 30px",
@@ -1304,6 +1250,21 @@ function HandDrawingScene({
             📷 Upload Image
           </button>
           <button
+            onClick={() => uploadedImage && setShowImageModal(true)}
+            disabled={!uploadedImage}
+            style={{
+              padding: "10px",
+              background: uploadedImage ? "rgba(0, 255, 255, 0.2)" : "rgba(128, 128, 128, 0.2)",
+              border: `1px solid ${uploadedImage ? "#00ffff" : "#666"}`,
+              borderRadius: "6px",
+              color: uploadedImage ? "#00ffff" : "#666",
+              cursor: uploadedImage ? "pointer" : "not-allowed",
+              fontSize: "11px",
+            }}
+          >
+            🎯 Make 3D
+          </button>
+          <button
             onClick={window.saveProject}
             style={{
               padding: "10px",
@@ -1330,20 +1291,6 @@ function HandDrawingScene({
             }}
           >
             📂 Load
-          </button>
-          <button
-            onClick={window.exportAsImage}
-            style={{
-              padding: "10px",
-              background: "rgba(255, 0, 255, 0.2)",
-              border: "1px solid #ff00ff",
-              borderRadius: "6px",
-              color: "#ff00ff",
-              cursor: "pointer",
-              fontSize: "11px",
-            }}
-          >
-            📷 Export
           </button>
         </div>
 

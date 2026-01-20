@@ -419,8 +419,9 @@ class GestureEngine {
    * Detect drag gesture
    * @private
    */
+  // eslint-disable-next-line no-unused-vars
   _detectDrag(landmarks, handIndex) {
-    const wrist = landmarks[0];
+    // handIndex kept for future features like per-hand gesture recognition
     const indexTip = landmarks[8];
 
     const prevWrist = this.lastLandmarks.get(`hand_${handIndex}_wrist`);

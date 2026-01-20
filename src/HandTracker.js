@@ -149,16 +149,15 @@ class HandTracker {
 
     // Process each hand
     landmarksArray.forEach((landmarks, handIndex) => {
+      // eslint-disable-next-line no-unused-vars
       const handId = `hand_${handIndex}`;
       this._updateHand(handId, landmarks, handIndex, deltaTime);
     });
 
     // Remove hands that no longer exist
-    for (const handId of this.hands.keys()) {
-      const handIndex = parseInt(handId.split("_")[1]);
-      if (handIndex >= landmarksArray.length) {
-        this._removeHand(handId);
-      }
+    for (let i = landmarksArray.length; i < this.hands.size; i++) {
+      const handId = `hand_${i}`;
+      this._removeHand(handId);
     }
   }
 
@@ -404,9 +403,9 @@ class HandTracker {
    * Clear all hand visualizations
    */
   clearAllHands() {
-    for (const handId of this.hands.keys()) {
+    this.hands.forEach((_, handId) => {
       this._removeHand(handId);
-    }
+    });
   }
 
   /**
@@ -416,7 +415,7 @@ class HandTracker {
   getSmoothedLandmarks() {
     const result = [];
 
-    for (const [handId, handGroup] of this.hands) {
+    this.hands.forEach((handGroup) => {
       const landmarks = [];
       handGroup.joints.forEach((joint, index) => {
         landmarks.push({
@@ -427,7 +426,7 @@ class HandTracker {
         });
       });
       result.push(landmarks);
-    }
+    });
 
     return result;
   }
@@ -472,11 +471,11 @@ class HandTracker {
    */
   setSkeletonVisible(visible) {
     this.config.showSkeleton = visible;
-    for (const [, handGroup] of this.hands) {
+    this.hands.forEach((handGroup) => {
       if (handGroup.lines) {
         handGroup.lines.visible = visible;
       }
-    }
+    });
   }
 
   /**
@@ -484,10 +483,10 @@ class HandTracker {
    * @param {boolean} visible - Show/hide joints
    */
   setJointsVisible(visible) {
-    for (const [, handGroup] of this.hands) {
+    this.hands.forEach((handGroup) => {
       handGroup.joints.forEach((joint) => (joint.visible = visible));
       handGroup.glows.forEach((glow) => (glow.visible = visible));
-    }
+    });
   }
 
   /**
